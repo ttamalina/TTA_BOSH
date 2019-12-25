@@ -1,6 +1,6 @@
 
 
-#include "ppm2bmp.h"
+#include "../headers/ppm2bmp.h"
 
 typedef unsigned char BYTE;
 typedef unsigned long DWORD;

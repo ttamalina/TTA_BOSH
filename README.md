@@ -6,7 +6,7 @@ Build the demo
 
 You need the V4L2 development package. On Debian/Ubuntu:
 ```
-$ sudo apt install libv4l2-dev
+$ sudo apt install libv4l-dev
 ```
 
 Then:

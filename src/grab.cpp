@@ -2,9 +2,9 @@
 #include <fstream>
 #include <ctime>
 #include <stdio.h>
-#include "webcam.h"
-#include "ppm2bmp.h"
-#include "raylib.h"
+#include "../headers/webcam.h"
+#include "../headers/ppm2bmp.h"
+#include "../headers/raylib.h"
 
 
 #define XRES (640/2)
@@ -85,7 +85,7 @@ int main(int argc, char** argv)
     const int screenWidth = XRES;
     const int screenHeight = YRES;
 
-    InitWindow(screenWidth, screenHeight, "Camera monitor [Rapter maker]");
+    InitWindow(screenWidth, screenHeight, "Camera monitor");
 
     SetTargetFPS(60);    
        
