@@ -35,7 +35,7 @@
 
 #include <linux/videodev2.h>
 
-#include "../headers/webcam.h"
+#include <webcam.h>
 
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
 
@@ -156,7 +156,7 @@ bool Webcam::read_frame()
 {
 
     struct v4l2_buffer buf;
-    unsigned int i;
+    //unsigned int i;
 
     CLEAR(buf);
 
@@ -279,7 +279,7 @@ void Webcam::init_device(void)
     struct v4l2_cropcap cropcap;
     struct v4l2_crop crop;
     struct v4l2_format fmt;
-    unsigned int min;
+    //unsigned int min;
 
     if (-1 == xioctl(fd, VIDIOC_QUERYCAP, &cap)) {
         if (EINVAL == errno) {
