@@ -35,13 +35,15 @@ using namespace std;
         sfTcpListener_accept(tcpList, &tcpSock);
         printf("Accepted from server: %s, port: %hu\n", sfTcpSocket_getRemoteAddress(tcpSock).address, sfTcpSocket_getRemotePort(tcpSock));
     }
-    void debug_send_frame(RGBImage frame)
+    void debug_send_frame(const RGBImage* frame)
     {
         sfPacket_clear(packet);
-        sfPacket_writeUint32(packet, frame.width);
-        sfPacket_writeUint32(packet, frame.height);
-        sfPacket_append(packet, frame.data, frame.size);
-        sfUdpSocket_sendPacket(udpSock, packet, sfIpAddress_Broadcast, 6969);
+        sfPacket_writeUint32(packet, frame->width);
+        sfPacket_writeUint32(packet, frame->height);
+        sfPacket_writeUint32(packet, frame->size);
+        sfPacket_append(packet, frame->data, frame->size);
+        sfTcpSocket_sendPacket(tcpSock, packet);
+        printf("Packet sendet\n");
     }
     void debug_destroy()
     {
@@ -52,32 +54,28 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
-    const int screenWidth = XRES;
-    const int screenHeight = YRES;
     const RGBImage *frame_ptr = nullptr;
     Webcam webcam("/dev/video0", XRES, YRES);
 
 #ifdef DEBUG
     debug_setup();
 #endif
-
-    //InitWindow(screenWidth, screenHeight, "Camera monitor");
-    //SetTargetFPS(60);  
     while(1)
     {
         frame_ptr = &webcam.frame();
-        Frame frame(*frame_ptr);
+#ifdef DEBUG
+        debug_send_frame(frame_ptr);
+#endif
     }
-
-    printf("Press any button to exit.\n");
-    getchar();
-
 #ifdef DEBUG
     debug_destroy();
 #endif
 
     /*  
-
+    const int screenWidth = XRES;
+    const int screenHeight = YRES;
+    InitWindow(screenWidth, screenHeight, "Camera monitor");
+    SetTargetFPS(60);  
     while (!WindowShouldClose())
     {
         if(IsKeyDown(KEY_S))

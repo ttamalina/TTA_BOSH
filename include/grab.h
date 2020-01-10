@@ -11,8 +11,8 @@
 #include <webcam.h>
 #include <raylib.h>
 
-#define XRES (640/2)
-#define YRES (480/2)
+#define XRES (1024/2)
+#define YRES (680/2)
 
 Color toGreyScale(Color);
 void makeScreenshot(const RGBImage*, const char*);
