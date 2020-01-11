@@ -15,47 +15,54 @@ using namespace std;
 
 #ifdef DEBUG
     sfUdpSocket* udpSock;
-    sfTcpListener* tcpList;
-    sfTcpSocket* tcpSock;
     sfPacket* packet;
-    sfIpAddress localAddr;
+    sfIpAddress serverAddr;
     void debug_setup()
     {
+        sfIpAddress localAddr;
+        sfIpAddress broadcastAddr = (sfIpAddress){"255.255.255.255"};
         printf("Run in debug mode.\n");
         udpSock = sfUdpSocket_create();
         packet = sfPacket_create();
-        tcpSock = sfTcpSocket_create();
-        tcpList = sfTcpListener_create();
         localAddr = sfIpAddress_getLocalAddress();
         sfUdpSocket_bind(udpSock, 6969, sfIpAddress_Broadcast);
-        sfTcpListener_listen(tcpList, 0, localAddr);
-        sfPacket_writeUint32(packet, sfTcpListener_getLocalPort(tcpList));
         sfPacket_writeString(packet, localAddr.address);
         sfUdpSocket_sendPacket(udpSock, packet, sfIpAddress_Broadcast, 6969);
         printf("Broadcast sendet.\n");
-        sfTcpListener_accept(tcpList, &tcpSock);
-        printf("Accepted from server: %s, port: %hu\n", sfTcpSocket_getRemoteAddress(tcpSock).address, sfTcpSocket_getRemotePort(tcpSock));
-    }
-    bool debug_send_frame(const RGBImage* frame)
-    {
+        sfUdpSocket_unbind(udpSock);
+        sfUdpSocket_bind(udpSock, 6969, sfIpAddress_Any);
         sfPacket_clear(packet);
-        sfPacket_writeUint32(packet, frame->width);
-        sfPacket_writeUint32(packet, frame->height);
-        sfPacket_writeUint32(packet, frame->size);
-        sfPacket_append(packet, frame->data, frame->size);
-        if(sfTcpSocket_sendPacket(tcpSock, packet) != sfSocketDone) 
-        {
-            printf("Connection closed. Program will be closed.\n");
-            return false;
-        }
-        return true;
+        sfUdpSocket_receivePacket(udpSock, packet, &broadcastAddr, 0);
+        sfPacket_readString(packet, serverAddr.address);
+        printf("Broadcast accepted from server: %s\n", serverAddr.address);
+    }
+    void debug_send_frame(const RGBImage* frame)
+    {
+        size_t ssize = (frame->size / 4) - 1;
+        sfPacket_clear(packet);
+        sfPacket_append(packet, frame->data, ssize);
+        sfUdpSocket_sendPacket(udpSock, packet, serverAddr, 6969);
+        sfPacket_clear(packet);
+
+        sfPacket_append(packet, &frame->data[ssize], ssize);
+        sfUdpSocket_sendPacket(udpSock, packet, serverAddr, 6969);
+        sfPacket_clear(packet);
+
+        sfPacket_append(packet, &frame->data[ssize * 2], ssize);
+        sfUdpSocket_sendPacket(udpSock, packet, serverAddr, 6969);
+        sfPacket_clear(packet);
+
+        sfPacket_append(packet, &frame->data[ssize * 3], ssize);
+        sfUdpSocket_sendPacket(udpSock, packet, serverAddr, 6969);
+
+        //printf("Packet sendet.\n");
     }
     void debug_destroy()
     {
         sfUdpSocket_unbind(udpSock);
         sfUdpSocket_destroy(udpSock);
-        sfTcpListener_destroy(tcpList);
-        sfTcpSocket_destroy(tcpSock);
+        //sfTcpListener_destroy(tcpList);
+        //sfTcpSocket_destroy(tcpSock);
         sfPacket_destroy(packet);
     }
 #endif
@@ -73,7 +80,7 @@ int main(int argc, char** argv)
     {
         frame_ptr = &webcam.frame();
 #ifdef DEBUG
-        if(!debug_send_frame(frame_ptr)) break;
+        debug_send_frame(frame_ptr);
 #endif
     }
 #ifdef DEBUG
