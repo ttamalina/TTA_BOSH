@@ -32,22 +32,31 @@ using namespace std;
         sfPacket_writeUint32(packet, sfTcpListener_getLocalPort(tcpList));
         sfPacket_writeString(packet, localAddr.address);
         sfUdpSocket_sendPacket(udpSock, packet, sfIpAddress_Broadcast, 6969);
+        printf("Broadcast sendet.\n");
         sfTcpListener_accept(tcpList, &tcpSock);
         printf("Accepted from server: %s, port: %hu\n", sfTcpSocket_getRemoteAddress(tcpSock).address, sfTcpSocket_getRemotePort(tcpSock));
     }
-    void debug_send_frame(const RGBImage* frame)
+    bool debug_send_frame(const RGBImage* frame)
     {
         sfPacket_clear(packet);
         sfPacket_writeUint32(packet, frame->width);
         sfPacket_writeUint32(packet, frame->height);
         sfPacket_writeUint32(packet, frame->size);
         sfPacket_append(packet, frame->data, frame->size);
-        sfTcpSocket_sendPacket(tcpSock, packet);
-        printf("Packet sendet\n");
+        if(sfTcpSocket_sendPacket(tcpSock, packet) != sfSocketDone) 
+        {
+            printf("Connection closed. Program will be closed.\n");
+            return false;
+        }
+        return true;
     }
     void debug_destroy()
     {
-
+        sfUdpSocket_unbind(udpSock);
+        sfUdpSocket_destroy(udpSock);
+        sfTcpListener_destroy(tcpList);
+        sfTcpSocket_destroy(tcpSock);
+        sfPacket_destroy(packet);
     }
 #endif
 
@@ -64,7 +73,7 @@ int main(int argc, char** argv)
     {
         frame_ptr = &webcam.frame();
 #ifdef DEBUG
-        debug_send_frame(frame_ptr);
+        if(!debug_send_frame(frame_ptr)) break;
 #endif
     }
 #ifdef DEBUG
