@@ -8,6 +8,8 @@
 #include <raylib.h>
 #include <grab.h>
 
+#include <sys/ioctl.h>
+
 using namespace std;
 
 #include <SFML/Network.h>
@@ -36,12 +38,27 @@ using namespace std;
         sfPacket_readString(packet, serverAddr.address);
         printf("Broadcast accepted from server: %s\n", serverAddr.address);
     }
+
+    void debug_send_subFrame(void *memory,size_t mem_size,int frame,int part)
+    {
+        sfPacket_clear(packet);
+        sfPacket_writeInt32(packet,frame);
+        sfPacket_writeInt32(packet,part);
+        sfPacket_append(packet, memory, mem_size);
+        sfUdpSocket_sendPacket(udpSock, packet, serverAddr, 6969);
+    }
+
     void debug_send_frame(const RGBImage* frame)
     {
-        size_t ssize = (frame->size / 4) - 1;
-        sfPacket_clear(packet);
-        sfPacket_append(packet, frame->data, ssize);
-        sfUdpSocket_sendPacket(udpSock, packet, serverAddr, 6969);
+        static int frame_count = 0;
+        size_t ssize = (frame->size / 4) ;
+        for(int i=0;i<4;i++)
+        {
+         debug_send_subFrame(&frame->data[i*ssize],ssize,frame_count,i);
+        }
+
+        frame_count++;
+        /*
         sfPacket_clear(packet);
 
         sfPacket_append(packet, &frame->data[ssize], ssize);
@@ -54,7 +71,7 @@ using namespace std;
 
         sfPacket_append(packet, &frame->data[ssize * 3], ssize);
         sfUdpSocket_sendPacket(udpSock, packet, serverAddr, 6969);
-
+        */
         //printf("Packet sendet.\n");
     }
     void debug_destroy()
@@ -67,6 +84,12 @@ using namespace std;
     }
 #endif
 
+bool kbhit()
+{
+    int byteswaiting;
+    ioctl(0, FIONREAD, &byteswaiting);
+    return byteswaiting > 0;
+}
 
 int main(int argc, char** argv)
 {
@@ -75,12 +98,16 @@ int main(int argc, char** argv)
 
 #ifdef DEBUG
     debug_setup();
+
+
 #endif
     while(1)
     {
         frame_ptr = &webcam.frame();
 #ifdef DEBUG
         debug_send_frame(frame_ptr);
+        //printf("loop\n");
+        if(kbhit()) break;
 #endif
     }
 #ifdef DEBUG
@@ -108,5 +135,6 @@ int main(int argc, char** argv)
 
     CloseWindow(); 
     */
+    printf("Program successfull exit.\n");
     return 0;
 }
