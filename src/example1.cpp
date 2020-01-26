@@ -35,30 +35,25 @@ void CMoveExample::run(){
         system ("/bin/stty cooked");
         switch (com) {
         case 'w':
-            speed = 0.23;
-            angle = 0.00;
+            speed += 0.05;
+            //angle = 0.00;
             break;
         case 's':
-            speed = -0.23;
-            angle = 0.00;
+            speed -= 0.05;
+            //angle = 0.00;
             break;
         case 'a':
-            angle = -22.0;
+            angle -= 3.00;
             break;
         case 'd':
-            angle = 22.0;
+            angle += 3.00;
             break;
         case ' ':
-            m_comManager.sendBrake(angle);
-            speed = 0.23;
+            m_comManager.sendBrake(0.00);
+            //speed = 0.23;
             usleep(0.5e6);
             continue;
-        case 'e':
-            speed++;
-            break;
-        case 'q':
-            speed--;
-            break;
+
         default:
             exit = true;
             break;
