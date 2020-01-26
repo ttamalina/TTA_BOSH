@@ -15,50 +15,6 @@
 #define XRES (640/2)
 #define YRES (480/2)
 
-Color white_filter(Color c)
-{
-    int sum = c.b+c.r+c.g;
-    if(sum>3*200)
-        return PINK;
-    else
-        return c;
-}
-
-float directionControl(matrix *m,float max_angle,bool draw)
-{
-   int dl = 0, dr =0;
-   int h = m->h/2 , w = m->w/2;
-
-   for(int i=w;i>0;i--)
-   {
-       if(m->body[h][i]) break;
-       dl++;
-   }
-
-   for(int i=w;i<m->w;i++)
-   {
-       if(m->body[h][i]) break;
-       dr++;
-   }
-
-   float angle = max_angle * (float) (dr-dl) / (float) (w);
-
-   if(draw)
-   {
-       char buff[50];
-       sprintf(buff,"Angle : %.2f",angle);
-     DrawText(buff,w,h-30,20,GREEN);
-     DrawCircle(w,h,5,RED);
-     DrawLine(w,m->h,w,h,RED);
-     DrawLine(w-dl,h,w+dr,h,YELLOW);
-     DrawLine(w,h,w+(dr-dl),h,GREEN);
-     DrawLine(w,m->h,w+(dr-dl),h,GREEN);
-     DrawCircle(w+(dr-dl),h,5,GREEN);
-   }
-
-   return angle;
-}
-
 Color toGreyScale(Color);
 void makeScreenshot(const RGBImage*, const char*);
 

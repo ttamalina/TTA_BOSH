@@ -578,7 +578,7 @@ public:
         {
             for(int j=0;j<w;j++)
             {
-                const int index =3*(i*w+j)
+                const int index =3*(i*w+j);
                 rgb[0]->body[i][j]=image.data[index];
                 rgb[1]->body[i][j]=image.data[index+1];
                 rgb[2]->body[i][j]=image.data[index+2];

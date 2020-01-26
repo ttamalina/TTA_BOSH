@@ -11,6 +11,50 @@
 
 #include <thread>
 
+float directionControl(matrix *m,float max_angle,bool draw)
+{
+   int dl = 0, dr =0;
+   int h = m->h/2 , w = m->w/2;
+
+   for(int i=w;i>0;i--)
+   {
+       if(m->body[h][i]) break;
+       dl++;
+   }
+
+   for(int i=w;i<m->w;i++)
+   {
+       if(m->body[h][i]) break;
+       dr++;
+   }
+
+   float angle = max_angle * (float) (dr-dl) / (float) (w);
+
+   if(draw)
+   {
+       char buff[50];
+       sprintf(buff,"Angle : %.2f",angle);
+     DrawText(buff,w,h-30,20,GREEN);
+     DrawCircle(w,h,5,RED);
+     DrawLine(w,m->h,w,h,RED);
+     DrawLine(w-dl,h,w+dr,h,YELLOW);
+     DrawLine(w,h,w+(dr-dl),h,GREEN);
+     DrawLine(w,m->h,w+(dr-dl),h,GREEN);
+     DrawCircle(w+(dr-dl),h,5,GREEN);
+   }
+
+   return angle;
+}
+
+Color white_filter(Color c)
+{
+    int sum = c.b+c.r+c.g;
+    if(sum>3*200)
+        return PINK;
+    else
+        return c;
+}
+
 void print(std::string str)
 {
     std::cout<<str<<std::endl;
@@ -59,10 +103,10 @@ void cameraWindowTask(void)
             {
                 if(grey->body[i][j]>70)
                 {
-                    pixel_buffer[i*temp->w+j] = white_filter(frame_color_buffer[i*temp->w+j]);
+                    pixel_buffer[i*grey->w+j] = white_filter(frame_color_buffer[i*grey->w+j]);
                 }
                 else
-                    pixel_buffer[i*temp->w+j] = frame_color_buffer[i*grey->w+j];
+                    pixel_buffer[i*grey->w+j] = frame_color_buffer[i*grey->w+j];
 
             }
 
