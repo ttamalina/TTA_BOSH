@@ -197,6 +197,21 @@ struct matrix
         }
     }
 
+    void setColorBuffer(Color * pixel_buffer)
+    {
+        for(int i=0;i<h;i++)
+        {
+            for(int j=0;j<w;j++)
+            {
+                const int index = i*w+j;
+                pixel_buffer[index].r = body[i][j];
+                pixel_buffer[index].g = body[i][j];
+                pixel_buffer[index].b = body[i][j];
+                pixel_buffer[index].a = 0xFF;
+            }
+        }
+    }
+
     int checkPosition(int x,int y)
     {
         if((x>=w)||(y>=h))
