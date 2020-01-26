@@ -10,6 +10,7 @@
 
 #include <webcam.h>
 #include <raylib.h>
+#include <MathCore.cpp>
 
 #define XRES (640/2)
 #define YRES (480/2)
@@ -22,17 +23,17 @@ struct Frame
     size_t w;
     size_t h;
     Color **data;
-    
+
     void draw()
     {
      for(size_t i=0;i<h;i++)
             for(size_t j=0;j<w;j++)
             {
             DrawPixel(j,i,data[i][j]);
-            }   
+            }
     }
-    
-    
+
+
     void diff(Frame &frame)
     {
         if((w==frame.w)&&(h==frame.h))
@@ -48,9 +49,9 @@ struct Frame
                 }
             }
         }
-        
+
     }
-    
+
     Frame(const RGBImage &image)
     {
         data = new Color*[image.height];
