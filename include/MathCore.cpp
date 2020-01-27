@@ -2,6 +2,46 @@
 
 #include <cmath>
 #include <raylib.h>
+#include <time.h>
+#define RAD(A)  (M_PI*((double)(A))/180.0)
+typedef unsigned char uint8_t;
+
+class Clock
+{
+private:
+    float current_time;
+
+    float CPS()
+    {
+        return (float)clock()/(float)CLOCKS_PER_SEC;
+    }
+
+public:
+    Clock()
+    {
+        current_time = CPS();
+    }
+    bool isElapsed(float seconds)
+    {
+        float dif_time = CPS();
+        dif_time -=current_time;
+        if(dif_time>seconds)
+            return true;
+        else
+            return false;
+    }
+
+    float getElapsed()
+    {
+        return CPS()-current_time;
+    }
+
+    void update()
+    {
+        current_time = CPS();
+    }
+};
+
 
 struct conv_kernel
 {
@@ -64,11 +104,38 @@ struct matrix
         }
     }
 
+    matrix(const uint8_t * pixel_buffer,int chanel,int w,int h):matrix(w,h)
+    {
+        int k=0;
+        for(int i=0; i<h; i++)
+        {
+            for(int j=0; j<w; j++)
+            {
+                body[i][j] = pixel_buffer[k+chanel];
+                k+=3;
+            }
+        }
+    }
+
     ~matrix()
     {
         for(int i=0; i<h; i++)
             delete[] body[i];
         delete[] body;
+    }
+    void setPixelBuffer(uint8_t *pixel_buff)
+    {
+        int k = 0 ;
+        for(int i=0; i<h; i++)
+        {
+            for(int j=0; j<w; j++)
+            {
+                pixel_buff[k] = body[i][j];
+                pixel_buff[k+1] = body[i][j];
+                pixel_buff[k+2] = body[i][j];
+                k+=3;
+            }
+        }
     }
 
     matrix * subMat(int start_x,int start_y,int end_x, int end_y)
@@ -199,9 +266,9 @@ struct matrix
 
     void setColorBuffer(Color * pixel_buffer)
     {
-        for(int i=0;i<h;i++)
+        for(int i=0; i<h; i++)
         {
-            for(int j=0;j<w;j++)
+            for(int j=0; j<w; j++)
             {
                 const int index = i*w+j;
                 pixel_buffer[index].r = body[i][j];
@@ -219,7 +286,7 @@ struct matrix
         else
             return 1;
     }
-    void pooling_avg(int level)
+    void pooling_avg(int level,bool upScale=true)
     {
         if((level<w)&&(level<h)&&(level>1))
         {
@@ -240,10 +307,11 @@ struct matrix
                             body[k][m]= sum;
                 }
             }
-            setSize(old_w,old_h);
+            if(upScale)
+                setSize(old_w,old_h);
         }
     }
-    void pooling_max(int level)
+    void pooling_max(int level,bool upScale=true)
     {
         if((level<w)&&(level<h)&&(level>1))
         {
@@ -264,7 +332,8 @@ struct matrix
                             body[k][m]= maximum;
                 }
             }
-            setSize(old_w,old_h);
+            if(upScale)
+                setSize(old_w,old_h);
         }
     }
 
@@ -332,21 +401,30 @@ struct matrix
             for(int j=0; j<new_w; j++)
             {
                 int c_var = 0;
+                int ii = i - dy;
 
                 if(as_float_kernel)
                 {
                     float acum = 0.0f;
                     for(int n=0; n<kernel->h; n++)
                     {
+                        const int * kernel_body_n = kernel->body[n];
+                        int jj = j - dx;
+
                         for(int m=0; m<kernel->h; m++)
                         {
-                            const int ii = i - dy + n;
-                            const int jj = j - dx + m;
-                            if((ii>=0)&&(ii<h)&&(jj>=0)&&(jj<w))
+                            const int kernel_body_nm = kernel_body_n[m];
+                            if(kernel_body_nm)
                             {
-                                acum += (float)body[ii][jj] *(float)((float)kernel->body[n][m]/(float)255.0f);
+                                if((ii>=0)&&(ii<h)&&(jj>=0)&&(jj<w))
+                                {
+                                    if(body[ii][jj])
+                                        acum += (float)body[ii][jj] *(float)((float)kernel_body_nm/(float)255.0f);
+                                }
                             }
+                            jj++;
                         }
+                        ii++;
                     }
                     c_var = (int)(255.0*acum)/div;
                 }
@@ -354,15 +432,22 @@ struct matrix
                 {
                     for(int n=0; n<kernel->h; n++)
                     {
+                        int jj = j - dx;
+                        const int * kernel_body_n = kernel->body[n];
                         for(int m=0; m<kernel->h; m++)
                         {
-                            const int ii = i - dy + n;
-                            const int jj = j - dx + m;
-                            if((ii>=0)&&(ii<h)&&(jj>=0)&&(jj<w))
+                            const int kernel_body_nm = kernel_body_n[m];
+                            if(kernel_body_nm)
                             {
-                                c_var += body[ii][jj] * kernel->body[n][m];
+                                if((ii>=0)&&(ii<h)&&(jj>=0)&&(jj<w))
+                                {
+                                    if(body[ii][jj])
+                                        c_var += body[ii][jj] * kernel_body_nm;
+                                }
                             }
+                            jj++;
                         }
+                        ii++;
                     }
                     c_var/=div;
                 }
@@ -383,12 +468,12 @@ struct matrix
         for(int i=0; i<h; i++)
         {
             for(int j=0; j<w; j++)
-                body[i][j] = 255.0*(float)(body[i][j])/(float)max_val;
-            //body[i][j] = 255*(body[i][j]-min_val)/div;
+                //body[i][j] = 255.0*(float)(body[i][j])/(float)max_val;
+                body[i][j] = 255*(body[i][j]-min_val)/div;
         }
     }
 
-    void threshold(int limit)
+    void threshold(int limit,bool binary=true)
     {
         for(int i=0; i<h; i++)
         {
@@ -396,10 +481,98 @@ struct matrix
             {
                 if(body[i][j]<limit)
                     body[i][j]=0;
-                else
+                else if(binary)
                     body[i][j]=255;
             }
         }
+    }
+
+    matrix * hough_transform()
+    {
+
+        int rho, theta, y, x, W = w, H = h;
+        int th = sqrt(W*W + H*H)/2.0;
+        int tw = 360;
+        matrix * h = new matrix(tw,th);
+
+        for(rho = 0; rho < th; rho++)
+        {
+            for(theta = 0; theta < tw; theta++)
+            {
+                double C = cos(RAD(theta));
+                double S = sin(RAD(theta));
+                int totalPixels =0 ;
+                int totalGreyColor =0;
+                if ( theta < 45 || (theta > 135 && theta < 225) || theta > 315)
+                {
+                    for(y = 0; y < H; y++)
+                    {
+                        double dx = W/2.0 + (rho - (H/2.0-y)*S)/C;
+                        if ( dx < 0 || dx >= W )
+                            continue;
+                        x = floor(dx+.5);
+                        if (x == W)
+                            continue;
+
+                        totalPixels++;
+                        totalGreyColor+=body[y][x];
+                    }
+                }
+                else
+                {
+                    for(x = 0; x < W; x++)
+                    {
+                        double dy = H/2.0 - (rho - (x - W/2.0)*C)/S;
+                        if ( dy < 0 || dy >= H )
+                            continue;
+                        y = floor(dy+.5);
+                        if (y == H)
+                            continue;
+                        totalPixels++;
+                        totalGreyColor+=body[y][x];
+                    }
+                }
+                if(totalPixels>0)
+                {
+                    double dp = totalPixels;
+                    h->body[rho][theta] = (int) (totalGreyColor/dp) &0xFF;
+                }
+            }
+        }
+
+        return h;
+    }
+
+    matrix * hough_filter(int limit)
+    {
+        matrix * h = hough_transform();
+        matrix * m = new matrix(this->w,this->h);
+
+        for(int rho = 0 ; rho<h->h; rho++)
+        {
+            for(int th = 0; th<h->w; th++)
+            {
+                if((h->body[rho][th]>100)&&(h->body[rho][th]<250))
+                    for(int y=0; y<m->h; y++)
+                    {
+
+                        const double C=cos(RAD(th));
+                        const double S=sin(RAD(th));
+                        const int W = m->w;
+                        const int H = m->h;
+                        double dx = W/2.0 + (rho - (H/2.0-y)*S)/C;
+                        if ( dx < 0 || dx >= W )
+                            continue;
+                        int x = floor(dx+.5);
+                        if (x == W)
+                            continue;
+                        m->body[y][x] =255;
+                    }
+            }
+        }
+
+        delete h;
+        return m;
     }
 
     matrix * sobol_filterX()
@@ -595,7 +768,6 @@ public:
             for(int j=0; j<w; j++)
             {
                 const int index = i*w+j;
-                Color c;
                 pixel_buffer[index].r = rgb[0]->body[i][j];
                 pixel_buffer[index].g = rgb[1]->body[i][j];
                 pixel_buffer[index].b = rgb[2]->body[i][j];
@@ -678,11 +850,29 @@ public:
         return rgb;
     }
 
+    void setPixelBuffer(uint8_t *pixel_buff,bool RGB = true)
+    {
+
+        int red = (RGB)?0:2;
+        int blue = (RGB)?2:0;
+        int k = 0 ;
+        for(int i=0; i<h; i++)
+        {
+            for(int j=0; j<w; j++)
+            {
+                pixel_buff[k] = rgb[red]->body[i][j];
+                pixel_buff[k+1] = rgb[1]->body[i][j];
+                pixel_buff[k+2] = rgb[blue]->body[i][j];
+                k+=3;
+            }
+        }
+    }
+
     void setColorBuffer(Color * pixel_buff)
     {
-        for(int i=0;i<h;i++)
+        for(int i=0; i<h; i++)
         {
-            for(int j=0;j<w;j++)
+            for(int j=0; j<w; j++)
             {
                 Color c;
                 c.r = rgb[0]->body[i][j];
@@ -700,6 +890,14 @@ public:
         this->h = h;
         for(int i=0; i<3; i++)
             rgb[i]->setSize(w,h);
+    }
+
+    void scale(float ration)
+    {
+        this->w *= ration;
+        this->h *= ration;
+        for(int i=0; i<3; i++)
+            rgb[i]->setSize(this->w,this->h);
     }
 
 

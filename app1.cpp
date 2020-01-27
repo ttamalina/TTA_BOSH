@@ -5,6 +5,9 @@
 #include <boost/function.hpp>
 #include <example1.hpp>
 
+
+#include "CannyEdgeDetector.h"
+
 #include <webcam.h>
 #include <raylib.h>
 #include <grab.h>
@@ -65,12 +68,21 @@ void cameraWindowTask(void)
     const RGBImage *frame_ptr = nullptr;
     Webcam webcam("/dev/video0", XRES, YRES);
 
-
+    const int camx = XRES;
+    const int camy = YRES;
     const int screenWidth = XRES;
     const int screenHeight = YRES;
     InitWindow(screenWidth, screenHeight, "Camera monitor");
     SetTargetFPS(30);
     Color * pixel_buffer = new Color[XRES*YRES];
+    Clock cpu_benchmark;
+    int cpu_fps = 0,benchmark_contor = 0;
+    float frame_work = 0, draw_work = 0;
+    char text_buff[256];
+    CannyEdgeDetector edge_detector;
+
+    uint8_t * pix_buf = new uint8_t[camx*camy*3];
+
     while (!WindowShouldClose())
     {
         frame_ptr = &webcam.frame();
@@ -78,55 +90,62 @@ void cameraWindowTask(void)
         {
             makeScreenshot(frame_ptr, "frame.ppm");
         }
-        //Frame frame(*frame_ptr);
+
+        Clock frame_timer;
+
         frame *f = new frame(*frame_ptr);
-        Color * frame_color_buffer = f->toColorBuffer();
+        f->setColorBuffer(pixel_buffer);
+        float ration = 0.15;
+        int camx_new = ration*camx, camy_new = camy*ration;
         matrix * grey = f->toGreyScaleBuffer();
+        grey->setSize(camx_new,camy_new);
+        int normal_light = grey->max();
+        normal_light-=normal_light/5;
+        grey->threshold(normal_light);
+        grey->setPixelBuffer(pix_buf);
+        //uint8_t * work = edge_detector.ProcessImage(pix_buf,camx_new,camy_new,1.4,20,80);
+        matrix * temp = grey;//new matrix(pix_buf,0,camx_new,camy_new);
+        //delete grey;
 
-
-
-        grey->setColorBuffer(pixel_buffer);
-
-        matrix * temp = grey->gaussian_filter(1.4);
-
-        delete grey;
-
-        grey = temp->sobol_filter();
-
-        delete temp;
-
-        grey->threshold(70);
-
-        for(int i =0 ; i<grey->h; i++)
+        temp->setSize(camx,camy);
+        for(int i=0;i<temp->h;i++)
         {
-            for(int j=0; j<grey->w; j++)
+            for(int j=0;j<temp->w;j++)
             {
-                if(grey->body[i][j]>70)
+                if(temp->body[i][j])
                 {
-                    pixel_buffer[i*grey->w+j] = white_filter(frame_color_buffer[i*grey->w+j]);
+                    pixel_buffer[i*temp->w+j] = PINK;
                 }
-                else
-                    pixel_buffer[i*grey->w+j] = frame_color_buffer[i*grey->w+j];
-
             }
-
         }
-
+        Clock draw_timer;
         Image image = LoadImageEx(pixel_buffer,grey->w,grey->h);
         Texture2D texture = LoadTextureFromImage(image);
         BeginDrawing();
         ClearBackground(BLACK);
-        DrawTexture(texture,screenWidth/2-grey->w/2,screenHeight/2-grey->h/2,WHITE);
+        DrawTexture(texture,screenWidth/2-temp->w/2,screenHeight/2-temp->h/2,WHITE);
         directionControl(grey,20,true);
+        sprintf(text_buff,"CPU FPS : %d\nFrame time = %.3fs\nDraw time = %.3fs\n",cpu_fps,frame_timer.getElapsed(),draw_timer.getElapsed());
+        DrawText(text_buff,10,50,30,RED);
         DrawFPS(10,10);
         EndDrawing();
         UnloadImage(image);
         UnloadTexture(texture);
-        delete grey;
+        delete temp;
         delete f;
+
+       if(cpu_benchmark.isElapsed(1.0))
+       {
+           cpu_fps = benchmark_contor;
+           cpu_benchmark.update();
+           benchmark_contor=0;
+       }
+       benchmark_contor++;
+
     }
 
     CloseWindow();
+    delete[] pix_buf;
     delete[] pixel_buffer;
 
 }
