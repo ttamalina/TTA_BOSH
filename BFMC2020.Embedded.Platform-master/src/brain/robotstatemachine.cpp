@@ -34,16 +34,19 @@ namespace brain{
      * @param f_motorControl        reference to dc motor control interface
      * @param f_steeringControl     reference to steering motor control interface
      * @param f_control             reference to controller object
+     * @param f_steeringControl_camera     reference to steering motor control interfa
      */
     CRobotStateMachine::CRobotStateMachine(
             float f_period_sec,
             Serial& f_serialPort,
             hardware::drivers::IMotorCommand&                 f_motorControl,
             hardware::drivers::ISteeringCommand&              f_steeringControl,
-            signal::controllers::CMotorController*           f_control) 
+            signal::controllers::CMotorController*           f_control,
+            hardware::drivers::ISteeringCommand&              f_steeringControl_camera)
         : m_serialPort(f_serialPort)
         , m_motorControl(f_motorControl)
         , m_steeringControl(f_steeringControl)
+        , m_steeringControl_camera(f_steeringControl_camera)
         , m_speed()
         , m_angle()
         , m_period_sec(f_period_sec)
@@ -116,7 +119,8 @@ namespace brain{
             // Move state - control the dc motor rotation speed and the steering angle. 
             case 1:
                 m_steeringControl.setAngle(m_angle); // control the steering angle 
-                if(m_ispidActivated && m_control!=NULL) // Check the pid controller 
+                m_steeringControl_camera.setAngle(m_angle); // control the steering angle
+                if(m_ispidActivated && m_control!=NULL) // Check the pid controller
                 {
                     m_control->setRef(CRobotStateMachine::Mps2Rps( m_speed )); // Set the reference of dc motor speed
                     // Calculate control signal and return the controller state. 
@@ -154,7 +158,8 @@ namespace brain{
             // Brake state
             case 2:
                 m_steeringControl.setAngle(m_angle); // Setting the steering angle
-                m_motorControl.brake(); // dc motor dynamic braking. 
+                m_steeringControl_camera.setAngle(m_angle); // Setting the steering angle
+                m_motorControl.brake(); // dc motor dynamic braking.
                 if( m_control!=NULL){ 
                     m_control->clear();
                 }
@@ -192,6 +197,10 @@ namespace brain{
                 sprintf(b,"The steering angle command is too high;;");
                 return;
             }
+            if( !m_steeringControl_camera.inRange(l_angle)){ // Check the received steering angle
+                sprintf(b,"The steering angle command is too high;;");
+                return;
+            }
 
             m_speed = l_speed;
             m_angle = l_angle; 
@@ -219,6 +228,10 @@ namespace brain{
         if(1 == l_res)
         {
             if( !m_steeringControl.inRange(l_angle)){
+                sprintf(b,"The steering angle command is too high;;");
+                return;
+            }
+            if( !m_steeringControl_camera.inRange(l_angle)){
                 sprintf(b,"The steering angle command is too high;;");
                 return;
             }
@@ -254,6 +267,11 @@ namespace brain{
         if(2 == l_res && m_state!=0)
         {
             if( !m_steeringControl.inRange(l_angle)){
+                sprintf(b,"The steering angle command is too high;;");
+                return;
+            }
+
+            if( !m_steeringControl_camera.inRange(l_angle)){
                 sprintf(b,"The steering angle command is too high;;");
                 return;
             }

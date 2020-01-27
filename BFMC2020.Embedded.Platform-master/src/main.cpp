@@ -45,7 +45,7 @@ Serial          g_rpi(USBTX, USBRX);
  */
 hardware::drivers::CMotorDriverVnh g_motorVnhDriver(D3, D2, D4, A0);
 hardware::drivers::CSteeringMotor g_steeringDriver(D9);
-
+hardware::drivers::CSteeringMotor g_steeringDriver_camera(D8);
 /// Base sample time for the task manager. The measurement unit of base sample time is second.
 const float     g_baseTick = 0.0001; // seconds
 /// It's a task for blinking periodically the built-in led on the Nucleo board.
@@ -71,7 +71,7 @@ signal::controllers::siso::CPidController<double> l_pidController( 0.1150,0.8100
 /// Create a controller object based on the predefined PID controller and the quadrature encoder
 signal::controllers::CMotorController g_controller(g_quadratureEncoderTask,l_pidController,&l_volt2pwmConverter);
 /// Create the motion controller, which controls the robot states and the robot moves based on the transmitted command over the serial interface. 
-brain::CRobotStateMachine           g_robotstatemachine(g_period_Encoder, g_rpi, g_motorVnhDriver,g_steeringDriver,&g_controller);
+brain::CRobotStateMachine           g_robotstatemachine(g_period_Encoder, g_rpi, g_motorVnhDriver,g_steeringDriver,&g_controller, g_steeringDriver_camera);
 
 /// Map for redirecting messages with the key and the callback functions. If the message key equals to one of the enumerated keys, than it will be applied the paired callback function.
 utils::serial::CSerialMonitor::CSerialSubscriberMap g_serialMonitorSubscribers = {

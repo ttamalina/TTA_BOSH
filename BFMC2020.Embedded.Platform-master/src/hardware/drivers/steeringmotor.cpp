@@ -32,7 +32,7 @@ namespace hardware::drivers{
      *  @param f_pwm               pin connected to servo motor
      */
     CSteeringMotor::CSteeringMotor(PinName f_pwm)
-        :CSteeringMotor(f_pwm,-23.0,23.0)
+        :CSteeringMotor(f_pwm,-25.0,25.0)
         
     {
     };
